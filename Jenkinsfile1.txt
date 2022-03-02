@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    options { timestamps () }
+    tools {
+        // Install the Maven version configured as "M3" and add it to the path.
+        maven "maven3.8"
+    }
+        stages {
+            stage('Clone SCM') {
+                steps {
+                git credentialsId: 'GIT_CREDS', url: 'https://github.com/revankumarpeddi/spring3-mvc-maven-xml-hello-world.git'  
+                }
+            }
+        
+            stage('Build through Maven') {
+                steps {
+                // Run Maven on a Unix agent.
+                    sh "mvn clean package"
+                    sh "mv ${WORKSPACE}/target/*.war ./target/spring3app.war"
+                }
+            }
+        
+            stage('Deploy') {
+                steps {
+                    withCredentials([usernameColonPassword(credentialsId: 'TOMCAT_CRED', variable: 'tomcatcred')]) {
+                        sh "curl -v -u ${tomcatcred} -T ${WORKSPACE}/target/spring3app.war 'ec2-user@ec2-3-110-187-139.ap-south-1.compute.amazonaws.com:8181/manager/text/deploy?path=/spring3app&update=true'"
+                    }
+                }
+            }
+        }
+}
